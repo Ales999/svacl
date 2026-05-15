@@ -139,9 +139,10 @@ func loadExcludeFile(path string) map[string]bool {
 	excluded := make(map[string]bool)
 	for _, line := range strings.Split(string(data), "\n") {
 		acl := strings.TrimSpace(line)
-		if acl != "" {
-			excluded[acl] = true
+		if acl == "" || strings.HasPrefix(acl, "#") {
+			continue
 		}
+		excluded[acl] = true
 	}
 	return excluded
 }
