@@ -6,17 +6,19 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/alecthomas/kong"
 )
 
 // Flags for app:
 var cli struct {
-	Config     string `arg:"" required:"" name:"CONFIG" help:"Cisco config file name or path"`
-	Debug      bool   `help:"Enable debug output" short:"d"`
-	Quiet      bool   `help:"Lite mode — one ACL name per line (active SVI only)" short:"q"`
-	UniqueAcls bool   `help:"Remove duplicate ACL names (only with -q)"`
-	CfgDir     string `required:"" help:"Path to backup cisco files" env:"CISCONFS" type:"existingdir"`
+	Config          string `arg:"" required:"" name:"CONFIG" help:"Cisco config file name or path"`
+	Debug           bool   `help:"Enable debug output" short:"d"`
+	Quiet           bool   `help:"Lite mode — one ACL name per line (active SVI only)" short:"q"`
+	UniqueAcls      bool   `help:"Remove duplicate ACL names (only with -q)"`
+	ExcludeAclsFile string `help:"Path to a file containing ACL names to exclude from -q output (one per line)"`
+	CfgDir          string `required:"" help:"Path to backup cisco files" env:"CISCONFS" type:"existingdir"`
 }
 
 func main() {
@@ -45,12 +47,14 @@ func main() {
 	results, err := ParseSVIAclFile(configPath)
 	ctx.FatalIfErrorf(err)
 
+	excludedACLs := loadExcludeFile(cli.ExcludeAclsFile)
+
 	if cli.Debug {
 		log.Printf("Config: %s (%d SVI found)\n", configPath, len(results))
 	}
 
 	if cli.Quiet {
-		printLite(results, cli.UniqueAcls)
+		printLite(results, cli.UniqueAcls, excludedACLs)
 	} else {
 		printTable(results)
 	}
@@ -91,16 +95,16 @@ func printTable(results []SVIAclInfo) {
 	}
 }
 
-func printLite(results []SVIAclInfo, unique bool) {
+func printLite(results []SVIAclInfo, unique bool, excluded map[string]bool) {
 	var acls []string
 	for _, r := range results {
 		if r.Shutdown {
 			continue
 		}
-		if r.ACLIn != "" {
+		if r.ACLIn != "" && !excluded[r.ACLIn] {
 			acls = append(acls, r.ACLIn)
 		}
-		if r.ACLOut != "" {
+		if r.ACLOut != "" && !excluded[r.ACLOut] {
 			acls = append(acls, r.ACLOut)
 		}
 	}
@@ -119,6 +123,24 @@ func printLite(results []SVIAclInfo, unique bool) {
 	for _, a := range acls {
 		fmt.Println(a)
 	}
+}
+
+func loadExcludeFile(path string) map[string]bool {
+	if path == "" {
+		return nil
+	}
+	data, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return nil
+	}
+	excluded := make(map[string]bool)
+	for _, line := range strings.Split(string(data), "\n") {
+		acl := strings.TrimSpace(line)
+		if acl != "" {
+			excluded[acl] = true
+		}
+	}
+	return excluded
 }
 
 func checkTextFile(filePath string) bool {
