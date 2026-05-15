@@ -1,0 +1,30 @@
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+
+# Recommended: Go.AllowList.gitignore
+
+# Ignore everything
+*
+
+# But not these files...
+!/.gitignore
+!/.gitattributes
+!/.dockerignore
+
+!*.go
+!go.sum
+!go.mod
+
+!README.md
+!PROJECT_SUMMARY.md
+!LICENSE
+
+!Makefile
+!LICENSE
+!Dockerfile
+!docker-compose.yml
+ 
+# ...even if they are in subdirectories
+#!/**/*.go
+
+!*/
