@@ -5,16 +5,18 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/alecthomas/kong"
 )
 
 // Flags for app:
 var cli struct {
-	Config string `arg:"" required:"" name:"CONFIG" help:"Cisco config file name or path"`
-	Debug  bool   `help:"Enable debug output" short:"d"`
-	Quiet  bool   `help:"Lite mode — one ACL name per line (active SVI only)" short:"q"`
-	CfgDir string `required:"" help:"Path to backup cisco files" env:"CISCONFS" type:"existingdir"`
+	Config     string `arg:"" required:"" name:"CONFIG" help:"Cisco config file name or path"`
+	Debug      bool   `help:"Enable debug output" short:"d"`
+	Quiet      bool   `help:"Lite mode — one ACL name per line (active SVI only)" short:"q"`
+	UniqueAcls bool   `help:"Remove duplicate ACL names (only with -q)"`
+	CfgDir     string `required:"" help:"Path to backup cisco files" env:"CISCONFS" type:"existingdir"`
 }
 
 func main() {
@@ -48,7 +50,7 @@ func main() {
 	}
 
 	if cli.Quiet {
-		printLite(results)
+		printLite(results, cli.UniqueAcls)
 	} else {
 		printTable(results)
 	}
@@ -89,17 +91,33 @@ func printTable(results []SVIAclInfo) {
 	}
 }
 
-func printLite(results []SVIAclInfo) {
+func printLite(results []SVIAclInfo, unique bool) {
+	var acls []string
 	for _, r := range results {
 		if r.Shutdown {
 			continue
 		}
 		if r.ACLIn != "" {
-			fmt.Println(r.ACLIn)
+			acls = append(acls, r.ACLIn)
 		}
 		if r.ACLOut != "" {
-			fmt.Println(r.ACLOut)
+			acls = append(acls, r.ACLOut)
 		}
+	}
+	if unique {
+		seen := make(map[string]bool)
+		var deduped []string
+		for _, a := range acls {
+			if !seen[a] {
+				seen[a] = true
+				deduped = append(deduped, a)
+			}
+		}
+		acls = deduped
+	}
+	sort.Strings(acls)
+	for _, a := range acls {
+		fmt.Println(a)
 	}
 }
 

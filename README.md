@@ -49,6 +49,7 @@ svlacl [flags] CONFIG
 | `--config-dir` | - | `CISCONFS`  | Path to directory containing Cisco config files (required) |
 | `-d` | `--debug` | — | Enable debug output                  |
 | `-q` | `--quiet` | — | Lite mode — one ACL name per line (active SVI only) |
+| `--unique-acls` | - | — | Remove duplicate ACL names (only with `-q`) |
 
 ### Examples
 
@@ -79,6 +80,19 @@ acl_out
 another_acl
 ```
 
+**Quiet mode with deduplication:**
+
+```bash
+svlacl -q --unique-acls --config-dir /backups/cisco my-switch.cfg
+```
+
+Output (sorted, unique ACL names only):
+```
+acl_in
+acl_out
+another_acl
+```
+
 **Debug mode with absolute path:**
 
 ```bash
@@ -102,7 +116,7 @@ Each line shows the details of one SVI interface found in the config file:
 
 ### Quiet (`-q`)
 
-Prints only the names of ACLs bound to active (non-shutdown) SVI interfaces, one per line. This mode is useful for scripting and automation.
+Prints only the names of ACLs bound to active (non-shutdown) SVI interfaces, one per line. Use `--unique-acls` to deduplicate and sort the output alphabetically. This mode is useful for scripting and automation.
 
 ## Parsed information
 
