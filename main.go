@@ -17,7 +17,7 @@ var cli struct {
 	Debug           bool   `help:"Enable debug output" short:"d"`
 	Quiet           bool   `help:"Lite mode — one ACL name per line (active SVI only)" short:"q"`
 	UniqueAcls      bool   `help:"Remove duplicate ACL names (only with -q)"`
-	ExcludeAclsFile string `help:"Path to a file containing ACL names to exclude from -q output (one per line)"`
+	ExcludeAclsFile string `help:"Path to a file containing SVI VLAN names to exclude from -q output (one per line, lowercase)"`
 	CfgDir          string `required:"" help:"Path to backup cisco files" env:"CISCONFS" type:"existingdir"`
 }
 
@@ -47,14 +47,14 @@ func main() {
 	results, err := ParseSVIAclFile(configPath)
 	ctx.FatalIfErrorf(err)
 
-	excludedACLs := loadExcludeFile(cli.ExcludeAclsFile)
+	excludedSVIs := loadExcludeFile(cli.ExcludeAclsFile)
 
 	if cli.Debug {
 		log.Printf("Config: %s (%d SVI found)\n", configPath, len(results))
 	}
 
 	if cli.Quiet {
-		printLite(results, cli.UniqueAcls, excludedACLs)
+		printLite(results, cli.UniqueAcls, excludedSVIs)
 	} else {
 		printTable(results)
 	}
@@ -101,10 +101,13 @@ func printLite(results []SVIAclInfo, unique bool, excluded map[string]bool) {
 		if r.Shutdown {
 			continue
 		}
-		if r.ACLIn != "" && !excluded[r.ACLIn] {
+		if excluded[strings.ToLower(r.VlanName)] {
+			continue
+		}
+		if r.ACLIn != "" {
 			acls = append(acls, r.ACLIn)
 		}
-		if r.ACLOut != "" && !excluded[r.ACLOut] {
+		if r.ACLOut != "" {
 			acls = append(acls, r.ACLOut)
 		}
 	}

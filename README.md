@@ -50,7 +50,7 @@ svlacl [flags] CONFIG
 | `-d` | `--debug` | — | Enable debug output                  |
 | `-q` | `--quiet` | — | Lite mode — one ACL name per line (active SVI only) |
 | `--unique-acls` | - | — | Remove duplicate ACL names (only with `-q`) |
-| `--exclude-acls-file` | - | — | Path to a file with ACL names to exclude from `-q` output (one per line) |
+| `--exclude-acls-file` | - | — | Path to a file with VLAN names to exclude from `-q` output (one per line, lowercase) |
 
 ### Examples
 
@@ -96,32 +96,23 @@ another_acl
 
 **Quiet mode with exclusions:**
 
-Create a file `exclude.txt` with ACL names (one per line):
+Create a file `exclude.txt` with VLAN names to exclude (one per line):
 ```
-known_good_1
-known_good_2
+vlan700
+vlan713
+vlan933
 ```
 
 ```bash
 svlacl -q --exclude-acls-file exclude.txt --config-dir /backups/cisco my-switch.cfg
 ```
 
-Output (ACLs from `exclude.txt` are filtered out):
-```
-acl_out
-another_acl
-```
+SVIs matching the listed VLAN names are skipped entirely, so their ACLs won't appear in output.
 
 **Quiet mode with deduplication and exclusions:**
 
 ```bash
 svlacl -q --unique-acls --exclude-acls-file exclude.txt --config-dir /backups/cisco my-switch.cfg
-```
-
-Output (sorted, unique, filtered):
-```
-acl_out
-another_acl
 ```
 
 **Debug mode with absolute path:**
@@ -147,7 +138,7 @@ Each line shows the details of one SVI interface found in the config file:
 
 ### Quiet (`-q`)
 
-Prints only the names of ACLs bound to active (non-shutdown) SVI interfaces, one per line. Use `--unique-acls` to deduplicate and sort the output alphabetically. Use `--exclude-acls-file` to filter out ACL names listed in an external file. This mode is useful for scripting and automation.
+Prints only the names of ACLs bound to active (non-shutdown) SVI interfaces, one per line. Use `--unique-acls` to deduplicate and sort the output alphabetically. Use `--exclude-acls-file` to skip entire VLAN interfaces listed in an external file — those SVIs and their ACLs will not appear in the output. Comparison is case-insensitive (the exclude file uses lowercase, e.g. `vlan700`, matching `Vlan700` in the config). This mode is useful for scripting and automation.
 
 ## Parsed information
 
