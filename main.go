@@ -39,13 +39,11 @@ func main() {
 		ctx.FatalIfErrorf(err)
 	}
 
-	if !checkTextFile(configPath) {
-		fmt.Fprintf(os.Stderr, "Error: %s is not a valid text file.\n", configPath)
+	results, err := ParseSVIAclFile(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-
-	results, err := ParseSVIAclFile(configPath)
-	ctx.FatalIfErrorf(err)
 
 	excludedSVIs := loadExcludeFile(cli.ExcludeAclsFile)
 
@@ -145,17 +143,4 @@ func loadExcludeFile(path string) map[string]bool {
 		excluded[acl] = true
 	}
 	return excluded
-}
-
-func checkTextFile(filePath string) bool {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return false
-	}
-	for _, b := range data {
-		if b == 0 {
-			return false
-		}
-	}
-	return true
 }
